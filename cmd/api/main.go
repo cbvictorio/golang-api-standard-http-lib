@@ -1,6 +1,9 @@
 package main
 
 import (
+	httpHandler "golang-api-standard-http-lib/internal/delivery/http"
+	repository "golang-api-standard-http-lib/internal/repository/postgres"
+	"golang-api-standard-http-lib/internal/usecase"
 	"golang-api-standard-http-lib/pkg/config"
 	"log/slog"
 	"os"
@@ -13,13 +16,18 @@ import (
 func main() {
 
 	// Create the tint handler for the colors logger
-	handler := tint.NewHandler(os.Stdout, &tint.Options{
+	tintHandler := tint.NewHandler(os.Stdout, &tint.Options{
 		Level:      slog.LevelDebug, // Set the minimum log level
 		TimeFormat: time.Kitchen,    // Use a shorter time format (e.g., "3:04PM")
 		AddSource:  true,            // Shows the file and line number
 	})
-	logger := slog.New(handler)
+
+	logger := slog.New(tintHandler)
 	slog.SetDefault(logger)
+
+	// Postgres DB connection setup
+	postgresConnectionURL := os.Getenv("POSTGRES_CONNECT_URL")
+	repository.ConnectPostgresDB(postgresConnectionURL)
 
 	// load .env file
 	config.LoadEnv()
@@ -30,6 +38,14 @@ func main() {
 
 	// setup Gin router
 	r := gin.Default()
+
+	// Create dependencies
+	userService := usecase.NewUserService()
+	userHandler := httpHandler.NewUserHandler(userService)
+
+	// Map routes
+	httpHandler.MapRoutes(r, userHandler)
+
 	port := ":8000"
 	slog.Info("Server started successfully", "port", port)
 
