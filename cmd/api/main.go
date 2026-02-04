@@ -25,12 +25,15 @@ func main() {
 	logger := slog.New(tintHandler)
 	slog.SetDefault(logger)
 
-	// Postgres DB connection setup
-	postgresConnectionURL := os.Getenv("POSTGRES_CONNECT_URL")
-	repository.ConnectPostgresDB(postgresConnectionURL)
-
 	// load .env file
 	config.LoadEnv()
+
+	// Postgres DB connection setup
+	postgresConnectionURL := os.Getenv("POSTGRES_CONNECT_URL")
+	if err := repository.ConnectPostgresDB(postgresConnectionURL); err != nil {
+		slog.Error("Failed to connect to database", "error", err)
+		os.Exit(1)
+	}
 
 	// setup Gin's application mode (debug | release)
 	ginMode := os.Getenv("GIN_MODE")
@@ -46,6 +49,7 @@ func main() {
 	// Map routes
 	httpHandler.MapRoutes(r, userHandler)
 
+	// run the app
 	port := ":8000"
 	slog.Info("Server started successfully", "port", port)
 
