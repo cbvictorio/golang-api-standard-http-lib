@@ -7,7 +7,7 @@ import (
 func MapRoutes(r *gin.Engine, userHandler *UserHandler) {
 
 	// Public routes
-	r.POST("/sign-up", userHandler.SignUp)
+	r.POST("/login", userHandler.Login)
 
 	// Protected routes (we'll add middleware later)
 	r.GET("/monitor", func(c *gin.Context) {

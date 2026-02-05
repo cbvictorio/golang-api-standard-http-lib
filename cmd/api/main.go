@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/lmittmann/tint"
 )
@@ -40,18 +41,30 @@ func main() {
 	gin.SetMode(ginMode)
 
 	// setup Gin router
-	r := gin.Default()
+	router := gin.Default()
+
+	// setup CORS config
+	frontendAppUrl := os.Getenv("FRONTEND_APP_URL")
+
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{frontendAppUrl}, // Your Angular dev URL
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	// Create dependencies
 	userService := usecase.NewUserService()
 	userHandler := httpHandler.NewUserHandler(userService)
 
 	// Map routes
-	httpHandler.MapRoutes(r, userHandler)
+	httpHandler.MapRoutes(router, userHandler)
 
 	// run the app
 	port := ":8000"
 	slog.Info("Server started successfully", "port", port)
 
-	r.Run(port)
+	router.Run(port)
 }

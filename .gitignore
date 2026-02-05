@@ -36,3 +36,8 @@ Thumbs.db
 # Build output
 dist/
 build/
+debug
+main
+cmd/api/debug
+cmd/api/main
+__debug_bin*

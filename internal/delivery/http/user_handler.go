@@ -49,7 +49,7 @@ func (h *UserHandler) SignUp(context *gin.Context) {
 		Password:  password,
 	}
 
-	err = h.userService.CreateUser(user)
+	err = h.userService.Create(user)
 
 	if err != nil {
 		context.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -62,4 +62,38 @@ func (h *UserHandler) SignUp(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{
 		"message": "user created",
 	})
+}
+
+func (h *UserHandler) Login(context *gin.Context) {
+	var body struct {
+		Email    string
+		Password string
+	}
+
+	context.Bind(&body)
+
+	user, err := h.userService.GetByEmail(body.Email)
+
+	// validate a possible server error
+	if err != nil {
+		context.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+
+		return
+	}
+
+	// validate existing user
+	if user == nil {
+		context.JSON(http.StatusOK, gin.H{
+			"message": "user with that email was not found (BACKEND)",
+		})
+
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{
+		"message": "user found",
+	})
+
 }
