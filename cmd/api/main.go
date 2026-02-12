@@ -2,7 +2,8 @@ package main
 
 import (
 	httpHandler "golang-api-standard-http-lib/internal/delivery/http"
-	repository "golang-api-standard-http-lib/internal/repository/postgres"
+	repository "golang-api-standard-http-lib/internal/repository"
+	pgRepo "golang-api-standard-http-lib/internal/repository/postgres"
 	"golang-api-standard-http-lib/internal/usecase"
 	"golang-api-standard-http-lib/pkg/config"
 	"log/slog"
@@ -31,8 +32,9 @@ func main() {
 
 	// Postgres DB connection setup
 	postgresConnectionURL := os.Getenv("POSTGRES_CONNECT_URL")
-	if err := repository.ConnectPostgresDB(postgresConnectionURL); err != nil {
-		slog.Error("Failed to connect to database", "error", err)
+	postgresClient, err := pgRepo.ConnectPostgresDB(postgresConnectionURL)
+	if err != nil {
+		slog.Error("The Postgres database connection failed", "error", err)
 		os.Exit(1)
 	}
 
@@ -47,7 +49,7 @@ func main() {
 	frontendAppUrl := os.Getenv("FRONTEND_APP_URL")
 
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{frontendAppUrl}, // Your Angular dev URL
+		AllowOrigins:     []string{frontendAppUrl},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -56,7 +58,8 @@ func main() {
 	}))
 
 	// Create dependencies
-	userService := usecase.NewUserService()
+	userRepository := repository.NewUserRepository(postgresClient)
+	userService := usecase.NewUserService(userRepository)
 	userHandler := httpHandler.NewUserHandler(userService)
 
 	// Map routes

@@ -7,18 +7,21 @@ import (
 	"gorm.io/gorm"
 )
 
-var PostgresClient *gorm.DB
+type PostgresClient struct {
+	*gorm.DB
+}
 
-func ConnectPostgresDB(dsn string) error {
+func ConnectPostgresDB(dsn string) (*PostgresClient, error) {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
 	if err != nil {
 		slog.Error("Postgres Database connection failed")
-		return err
+		return nil, err
 	}
 
-	PostgresClient = db
 	slog.Info("Postgres Database connection succesful")
 
-	return nil
+	return &PostgresClient{
+		DB: db,
+	}, nil
 }

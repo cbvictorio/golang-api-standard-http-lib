@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"context"
 	"time"
 )
 
@@ -21,9 +20,4 @@ type User struct {
 	Password  string    `json:"password"`
 	Role      UserRole  `json:"role" gorm:"type:user_role"`
 	CreatedAt time.Time `json:"created_at"`
-}
-
-type UserRepository interface {
-	Create(ctx context.Context, user *User) error
-	GetByUsername(ctx context.Context, username string) (*User, error)
 }
