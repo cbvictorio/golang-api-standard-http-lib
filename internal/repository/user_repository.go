@@ -12,6 +12,7 @@ import (
 
 type UserRepositoryAbstraction interface {
 	GetByEmail(email string) (*domain.User, error)
+	Create(user domain.User) error
 }
 
 type UserRepository struct {
@@ -38,4 +39,9 @@ func (userRepository *UserRepository) GetByEmail(email string) (*domain.User, er
 	}
 
 	return user, nil
+}
+
+func (userRepository *UserRepository) Create(userInput *domain.User) error {
+	result := userRepository.postgresClient.Create(&userInput)
+	return result.Error
 }

@@ -6,6 +6,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type ErrorObject struct {
+	Error   bool   `json:"error"`
+	Message string `json:"message"`
+}
+
 const (
 	COST_FACTOR = 14
 )
@@ -23,4 +28,8 @@ func GenerateHashFromPassword(password string) (string, error) {
 func CompareHashWithPassword(hash string, password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
+}
+
+func AppError(message string) *ErrorObject {
+	return &ErrorObject{Error: true, Message: message}
 }
