@@ -30,6 +30,13 @@ func CompareHashWithPassword(hash string, password string) bool {
 	return err == nil
 }
 
-func AppError(message string) *ErrorObject {
+func HttpAppErrorResponse(message string) *ErrorObject {
 	return &ErrorObject{Error: true, Message: message}
+}
+
+func ErrorMessage(err error, fallback string) string {
+	if err != nil {
+		return err.Error()
+	}
+	return fallback
 }

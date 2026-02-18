@@ -1,41 +1,31 @@
 package usecase
 
 import (
+	"errors"
 	"golang-api-standard-http-lib/internal/domain"
-	repository "golang-api-standard-http-lib/internal/repository"
+	"golang-api-standard-http-lib/internal/repository"
 	"golang-api-standard-http-lib/pkg"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-type UserCredentialsDTO struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
-}
-
-type NewUserDTO struct {
-	Name     string `json:"name" binding:"required"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
-}
-
-type UserService struct {
-	userRepository *repository.UserRepository
-}
-
 func NewUserService(r *repository.UserRepository) *UserService {
 	return &UserService{userRepository: r}
 }
 
-func (userService *UserService) GetByEmail(email string) (*domain.User, error) {
+func (userService *UserService) DoesEmailExist(email string) (bool, error) {
 	result, err := userService.userRepository.GetByEmail(email)
 
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
-	return result, nil
+	if result != nil {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func (userService *UserService) CreateUser(userInput *NewUserDTO) error {
@@ -57,4 +47,25 @@ func (userService *UserService) CreateUser(userInput *NewUserDTO) error {
 	result := userService.userRepository.Create(user)
 
 	return result
+}
+
+func (userService *UserService) AuthenticateUser(email string, password string) (*domain.User, error) {
+	user, err := userService.userRepository.GetByEmail(email)
+
+	// something went wrong while retrieving the user
+	if err != nil {
+		return nil, err
+	}
+
+	// user does not exist
+	if user == nil {
+		return nil, nil
+	}
+
+	// validating password flow
+	if !pkg.CompareHashWithPassword(user.Password, password) {
+		return nil, errors.New("Invalid username or password")
+	}
+
+	return user, nil
 }

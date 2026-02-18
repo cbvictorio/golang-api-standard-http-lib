@@ -11,64 +11,56 @@ import (
 	"golang-api-standard-http-lib/pkg"
 )
 
-type UserHandler struct {
-	userService *usecase.UserService
-}
-
-func NewUserHandler(userService *usecase.UserService) *UserHandler {
-	return &UserHandler{userService: userService}
-}
-
 func (h *UserHandler) Login(context *gin.Context) {
 	var body usecase.UserCredentialsDTO
 	context.Bind(&body)
 
-	user, err := h.userService.GetByEmail(body.Email)
+	user, err := h.userService.AuthenticateUser(body.Email, body.Password)
 
 	// validate a possible server error
 	if err != nil {
-		context.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-
+		msg := err.Error()
+		context.AbortWithStatusJSON(http.StatusBadRequest, pkg.HttpAppErrorResponse(msg))
 		return
 	}
 
 	// if user does not exist
 	if user == nil {
-		context.AbortWithStatusJSON(http.StatusUnauthorized, pkg.AppError("Invalid username or password"))
+		context.AbortWithStatusJSON(
+			http.StatusUnauthorized,
+			pkg.HttpAppErrorResponse(pkg.ErrorMessage(err, "Invalid credentials")),
+		)
+
 		return
 	}
 
 	context.JSON(http.StatusOK, gin.H{
-		"name":      user.Name,
-		"email":     user.Email,
-		"role":      user.Role,
-		"createdAt": user.CreatedAt,
+		"name":  user.Name,
+		"email": user.Email,
+		"role":  user.Role,
 	})
 
 }
 
 func (h *UserHandler) SignUp(context *gin.Context) {
 	var body usecase.NewUserDTO
-
 	context.Bind(&body)
 
-	user, err := h.userService.GetByEmail(body.Email)
+	userExists, err := h.userService.DoesEmailExist(body.Email)
 
 	// error happened
 	if err != nil {
 		msg := "Something went wrong while creating the user"
 		slog.Error(msg, "error", err.Error())
-		context.AbortWithStatusJSON(http.StatusBadRequest, pkg.AppError(msg))
+		context.AbortWithStatusJSON(http.StatusBadRequest, pkg.HttpAppErrorResponse(msg))
 		return
 	}
 
 	// user already exists
-	if user != nil {
+	if userExists {
 		context.JSON(
 			http.StatusBadRequest,
-			pkg.AppError("This email address is already associated with an account."),
+			pkg.HttpAppErrorResponse("This email address is already associated with an account."),
 		)
 
 		return
@@ -79,11 +71,11 @@ func (h *UserHandler) SignUp(context *gin.Context) {
 	if userCreationError != nil {
 		msg := "Something went wrong while creating the user"
 		slog.Error(msg, "error", userCreationError.Error())
-		context.AbortWithStatusJSON(http.StatusInternalServerError, pkg.AppError(msg))
+		context.AbortWithStatusJSON(http.StatusInternalServerError, pkg.HttpAppErrorResponse(msg))
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{
+	context.JSON(http.StatusCreated, gin.H{
 		"message": "User created successfully",
 	})
 
